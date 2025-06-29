@@ -1,26 +1,26 @@
-name: Deploy
+# .github/workflows/deploy.yml
+name: Deploy to Railway
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build Docker image
-        run: docker build -t histoculture .
+      # 1. リポジトリのコードをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4 # v3 -> v4に更新
+
+      # 2. Railway CLIをインストールする
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-      - name: Deploy
+
+      # 3. Railwayにデプロイする
+      #    RAILWAY_TOKENを環境変数として渡すことで、CLIが自動で認証を行う
+      - name: Deploy to Railway
         env:
-          CSE_KEY: ${{ secrets.CSE_KEY }}
-          CSE_CX: ${{ secrets.CSE_CX }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: railway up
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --detach
