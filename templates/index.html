@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>HistoriCulture</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico">
+    <script src="https://unpkg.com/htmx.org"></script>
+</head>
+<body>
+    <h1>Histriculture</h1>
+    <form hx-post="/ask" hx-target="#response-area" hx-swap="innerHTML">
+        <input type="text" name="question">
+        <button type="submit">送信</button>
+    </form>
+    <div id="response-area"></div>
+</body>
+</html>
