@@ -1,12 +1,15 @@
-google-generativeai>=0.3.2
-google-api-python-client
+# requirements.txt
+aiohttp
+beautifulsoup4
 chromadb
 fastapi
-uvicorn[standard]
-readability-lxml
-aiohttp
-python-dotenv
+google-api-python-client
+google-generativeai>=0.3.2
+httpx
+lxml
 pytest
 pytest-asyncio
-httpx
+python-dotenv
+readability-lxml
 requests
+uvicorn[standard]
