@@ -15,6 +15,11 @@ app = FastAPI()
 DB = VectorDB()
 
 
+@app.get("/")
+async def health() -> dict:
+    return {"status": "ok"}
+
+
 class IngestRequest(BaseModel):
     query: str
     num_results: int = 3
