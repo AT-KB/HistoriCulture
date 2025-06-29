@@ -1,23 +1,35 @@
-from __future__ import annotations
+"""Scheduled ingestion worker."""
 
-import asyncio
 import os
+import requests
 
-import httpx
+API_BASE_URL: str = os.getenv("API_BASE_URL", "http://localhost:8000")
 
-DEFAULT_TOPICS = ["history", "culture"]
+DEFAULT_TOPICS = [
+    "インドの歴史",
+    "ムガル帝国",
+    "インダス文明",
+    "ガンディーの生涯",
+]
 
 
-async def ingest_topic(client: httpx.AsyncClient, topic: str) -> None:
-    await client.post("/ingest", json={"query": topic})
+def trigger_ingestion(topic: str) -> None:
+    """Send a POST request to the ingestion endpoint for a topic."""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/ingest", json={"query": topic}
+        )
+        response.raise_for_status()
+        print(f"Successfully ingested: {topic}")
+    except requests.RequestException as exc:
+        print(f"Failed to ingest {topic}: {exc}")
 
 
-async def main() -> None:
-    api_url = os.getenv("API_URL", "http://localhost:8000")
-    async with httpx.AsyncClient(base_url=api_url) as client:
-        for topic in DEFAULT_TOPICS:
-            await ingest_topic(client, topic)
+def main() -> None:
+    """Trigger ingestion for all default topics."""
+    for topic in DEFAULT_TOPICS:
+        trigger_ingestion(topic)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
