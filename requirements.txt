@@ -6,3 +6,6 @@ uvicorn[standard]
 readability-lxml
 aiohttp
 python-dotenv
+pytest
+pytest-asyncio
+httpx
