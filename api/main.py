@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from scripts import search, crawl
@@ -12,10 +14,16 @@ from rag.vectordb import VectorDB
 from rag.generate import answer
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 DB = VectorDB()
 
 
 @app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
 
@@ -41,8 +49,10 @@ async def ingest(req: IngestRequest) -> dict:
 
 
 @app.post("/ask")
-async def ask(req: AskRequest) -> dict:
-    chunks = []
-    for piece in answer(req.question, DB):
-        chunks.append(piece)
-    return {"answer": "".join(chunks)}
+async def ask(req: AskRequest):
+    async def generate():
+        for piece in answer(req.question, DB):
+            yield piece
+            await asyncio.sleep(0)
+
+    return StreamingResponse(generate(), media_type="text/plain")
