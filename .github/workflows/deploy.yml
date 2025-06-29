@@ -22,4 +22,4 @@ jobs:
         run: |
           # --serviceフラグでデプロイ対象のサービス名を指定する
           # "HistoriCulture"の部分を、あなたの実際のサービス名に置き換えてください
-          railway up --detach --service="Historiculture"
+          railway up --detach --service="HistoriCulture"
