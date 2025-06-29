@@ -10,17 +10,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # 1. リポジトリのコードをチェックアウトする
       - name: Checkout repository
-        uses: actions/checkout@v4 # v3 -> v4に更新
+        uses: actions/checkout@v4
 
-      # 2. Railway CLIをインストールする
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      # 3. Railwayにデプロイする
-      #    RAILWAY_TOKENを環境変数として渡すことで、CLIが自動で認証を行う
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --detach
+        run: |
+          # --serviceフラグでデプロイ対象のサービス名を指定する
+          # "HistoriCulture"の部分を、あなたの実際のサービス名に置き換えてください
+          railway up --detach --service="Historiculture"
