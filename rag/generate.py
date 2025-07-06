@@ -11,7 +11,7 @@ from .embed import GeminiEmbedding  # ★ 新しくインポート
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-MODEL = genai.GenerativeModel("gemini-2.5-flash-latest") # 安定版の最新モデル名
+MODEL = genai.GenerativeModel("gemini-2.5-flash") # 安定版の最新モデル名
 
 SYS_PROMPT = "..." # (プロンプトは変更なし)
 
