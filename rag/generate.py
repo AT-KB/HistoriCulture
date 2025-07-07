@@ -7,27 +7,30 @@ from typing import AsyncGenerator
 import google.generativeai as genai
 
 from .vectordb import VectorDB
-from .embed import GeminiEmbedding  # ★ 新しくインポート
+from .embed import GeminiEmbedding  # このimportが今度こそ成功します
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-MODEL = genai.GenerativeModel("gemini-2.5-flash") # 安定版の最新モデル名
 
-SYS_PROMPT = "..." # (プロンプトは変更なし)
+# 司令塔の指示通り、最新モデルを使用
+MODEL = genai.GenerativeModel("gemini-2.5-flash")
+
+SYS_PROMPT = """
+You are a helpful and knowledgeable historian.
+Based *only* on the provided context, answer the user's question clearly and concisely.
+If the context does not contain the answer, state that you cannot answer from the given information.
+"""
 
 async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenerator[str, None]:
     """
     Generates a streaming answer.
-    The key change is to manually create the query embedding first.
     """
-    # 1. ★★★★★ ここが最重要の修正点 ★★★★★
-    # GeminiのEmbedderを呼び出し、質問文をベクトル化する
+    # 1. Create an instance of our embedding class
     embedder = GeminiEmbedding()
+    # 2. Use it to create a vector from the user's question
     question_embedding = embedder.embed_query(text=question)
-
-    # 2. 作成したベクトルを使ってデータベースを検索する
+    # 3. Query the DB with the generated vector
     matches = db.query(query_embedding=question_embedding, n_results=n_results)
-    # ---
 
     if not matches:
         yield "申し訳ありませんが、関連する情報がデータベースに見つかりませんでした。"
