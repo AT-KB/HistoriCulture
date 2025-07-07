@@ -4,13 +4,13 @@ from __future__ import annotations
 import asyncio
 from typing import Dict
 
-from fastapi import FastAPI, Request, BackgroundTasks, Form
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from scripts import search, crawl
-from rag import chunk  # ★★★★★ ここが修正点 ★★★★★
+from rag import chunk
 from rag.vectordb import VectorDB
 from rag.generate import answer
 from rag.embed import GeminiEmbedding
@@ -23,13 +23,13 @@ class IngestRequest(BaseModel):
     num_results: int = 10
 
 def ingest_pipeline(query: str, num_results: int):
-    """The complete RAG ingestion process, now using Gemini for embeddings."""
-    print(f"Background ingestion started for query: '{query}'")
+    print(f"--- SYNC INGESTION STARTED for query: '{query}' ---")
     results = search.run(query, num_results)
     urls = [r["url"] for r in results if r.get("url")]
     if not urls:
-        print(f"No URLs found for '{query}'.")
+        print("No URLs found. Ingestion finished.")
         return
+    print(f"Found {len(urls)} URLs. Starting crawl...")
     pages = asyncio.run(crawl.run(urls))
 
     all_chunks = []
@@ -37,7 +37,7 @@ def ingest_pipeline(query: str, num_results: int):
         all_chunks.extend(chunk.split_text(page))
 
     if not all_chunks:
-        print("No text chunks to ingest.")
+        print("No text chunks to ingest. Ingestion finished.")
         return
 
     documents = [c['text'] for c in all_chunks]
@@ -52,20 +52,20 @@ def ingest_pipeline(query: str, num_results: int):
     db = VectorDB()
     db.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
     
-    print(f"Background ingestion finished for query: '{query}'.")
+    print(f"--- SYNC INGESTION FINISHED for query: '{query}' ---")
 
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/health")
-async def health() -> Dict[str, str]:
-    return {"status": "ok"}
-
 @app.post("/ingest")
-async def ingest(req: IngestRequest, background_tasks: BackgroundTasks) -> Dict[str, str]:
-    background_tasks.add_task(ingest_pipeline, req.query, req.num_results)
-    return {"message": f"Ingestion process for '{req.query}' has been started."}
+async def ingest(req: IngestRequest) -> Dict[str, str]:
+    """
+    Triggers the ingestion pipeline SYNCHRONOUSLY.
+    This will block until the process is complete.
+    """
+    ingest_pipeline(req.query, req.num_results)
+    return {"message": f"Ingestion process for '{req.query}' has completed."}
 
 @app.post("/ask")
 async def ask(question: str = Form(...)):
