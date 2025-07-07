@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from scripts import search, crawl
-from rag import chunk  # ★★★★★ ここにchunkを追加 ★★★★★
+from rag import chunk  # ★★★★★ ここが修正点 ★★★★★
 from rag.vectordb import VectorDB
 from rag.generate import answer
 from rag.embed import GeminiEmbedding
@@ -34,7 +34,6 @@ def ingest_pipeline(query: str, num_results: int):
 
     all_chunks = []
     for page in pages:
-        # 正しくは rag.chunk なので、importした 'chunk' を使う
         all_chunks.extend(chunk.split_text(page))
 
     if not all_chunks:
