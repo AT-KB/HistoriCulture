@@ -10,23 +10,21 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from scripts import search, crawl
-from rag.chunk import chunk_text
+from rag import chunk  # ★★★★★ ここにchunkを追加 ★★★★★
 from rag.vectordb import VectorDB
 from rag.generate import answer
-from rag.embed import GeminiEmbedding # ★ Ingestでも使うのでインポート
+from rag.embed import GeminiEmbedding
 
 app = FastAPI(title="Histriculture API")
 templates = Jinja2Templates(directory="templates")
 
 class IngestRequest(BaseModel):
     query: str
-    num_results: int = 10 # デフォルトの検索件数を少し増やす
+    num_results: int = 10
 
 def ingest_pipeline(query: str, num_results: int):
     """The complete RAG ingestion process, now using Gemini for embeddings."""
     print(f"Background ingestion started for query: '{query}'")
-    
-    # 1. Search & Crawl
     results = search.run(query, num_results)
     urls = [r["url"] for r in results if r.get("url")]
     if not urls:
@@ -34,9 +32,9 @@ def ingest_pipeline(query: str, num_results: int):
         return
     pages = asyncio.run(crawl.run(urls))
 
-    # 2. Chunk all documents
     all_chunks = []
     for page in pages:
+        # 正しくは rag.chunk なので、importした 'chunk' を使う
         all_chunks.extend(chunk.split_text(page))
 
     if not all_chunks:
@@ -47,20 +45,16 @@ def ingest_pipeline(query: str, num_results: int):
     metadatas = [c['metadata'] for c in all_chunks]
     ids = [f"{m['source_url']}_{m['chunk_id']}" for m in metadatas]
 
-    # 3. ★★★★★ ここが最重要の修正点 ★★★★★
-    # GeminiのEmbedderを呼び出し、全ドキュメントをベクトル化する
     print(f"Embedding {len(documents)} chunks with Gemini...")
     embedder = GeminiEmbedding()
     embeddings = embedder.embed_documents(documents)
     print("Embedding complete.")
 
-    # 4. Store documents AND their embeddings in the DB
     db = VectorDB()
     db.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
     
     print(f"Background ingestion finished for query: '{query}'.")
 
-# (他のエンドポイントは変更なし)
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
