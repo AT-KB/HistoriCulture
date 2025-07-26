@@ -7,7 +7,6 @@ from typing import AsyncGenerator
 import google.generativeai as genai
 
 from .vectordb import VectorDB
-from .embed import GeminiEmbedding  # このimportが今度こそ成功します
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -25,12 +24,8 @@ async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenera
     """
     Generates a streaming answer.
     """
-    # 1. Create an instance of our embedding class
-    embedder = GeminiEmbedding()
-    # 2. Use it to create a vector from the user's question
-    question_embedding = embedder.embed_query(text=question)
-    # 3. Query the DB with the generated vector
-    matches = db.query(query_embedding=question_embedding, n_results=n_results)
+    # Query the DB directly with the question text
+    matches = db.query(query_text=question, n_results=n_results)
 
     if not matches:
         yield "申し訳ありませんが、関連する情報がデータベースに見つかりませんでした。"
