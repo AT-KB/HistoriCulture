@@ -19,16 +19,19 @@ class VectorDB:
         )
         # ---
 
-    def add(self, documents: List[str], embeddings: List[List[float]], metadatas: List[Dict[str, Any]], ids: List[str]):
-        """Adds documents WITH their pre-computed embeddings."""
-        if not documents: return
+    def add(
+        self,
+        documents: List[str],
+        embeddings: List[List[float]],
+        metadatas: List[Dict[str, Any]],
+        ids: List[str],
+    ) -> None:
         self.collection.add(
-            embeddings=embeddings,
             documents=documents,
+            embeddings=embeddings,
             metadatas=metadatas,
-            ids=ids
+            ids=ids,
         )
-        print(f"Added {len(documents)} documents to ChromaDB.")
 
     def query(self, query_embedding: List[float], n_results: int = 5) -> List[Dict[str, Any]]:
         """Queries the collection with a pre-made vector embedding."""
