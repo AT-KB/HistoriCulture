@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Dict
 
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -26,6 +26,10 @@ DB = VectorDB()
 class IngestRequest(BaseModel):
     query: str
     num_results: int = 10
+
+
+class AskRequest(BaseModel):
+    question: str
 
 
 async def ingest_pipeline(query: str, num_results: int = 3) -> int:
@@ -88,7 +92,10 @@ async def ingest(req: IngestRequest) -> Dict[str, int]:
 
 
 @app.post("/ask")
-async def ask(question: str = Form(...)):
-    db = VectorDB()
-    response_generator = answer(question, db)
+async def ask(req: AskRequest):
+    """
+    Accepts JSON {"question": "..."} and returns a streaming RAG answer.
+    """
+    question = req.question
+    response_generator = answer(question, DB)
     return StreamingResponse(response_generator, media_type="text/plain")
