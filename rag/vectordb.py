@@ -1,5 +1,3 @@
-# rag/vectordb.py
-
 from __future__ import annotations
 import chromadb
 from typing import List, Dict, Any
@@ -13,7 +11,7 @@ class VectorDB:
         self.client = chromadb.PersistentClient(path=DB_PATH)
         self.collection = self.client.get_or_create_collection(
             name=COLLECTION_NAME,
-            embedding_function=None  # 自前Embeddingsを使うためNone
+            embedding_function=None  # 外部で埋め込みを制御する
         )
 
     def add(
@@ -39,8 +37,13 @@ class VectorDB:
         query_text: str,
         n_results: int = 5
     ) -> List[Dict[str, Any]]:
-        # Compute embedding for the text query
+        """
+        Accepts a raw text query, computes its embedding,
+        and returns the top-n matching documents.
+        """
+        # テキスト → 埋め込み
         embedding = embed_texts([query_text])[0]
+        # ベクトル検索
         res = self.collection.query(
             query_embeddings=[embedding],
             n_results=n_results
