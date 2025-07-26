@@ -12,6 +12,14 @@ from rag.chunk import chunk_text
 from rag.embed import embed_texts
 from rag.vectordb import VectorDB
 from rag.generate import answer
+from fastapi import FastAPI
+
+@app.get("/status")
+async def status():
+    from rag.vectordb import VectorDB
+    db = VectorDB()
+    count = db.collection.count()  # ChromaDB に保存されているチャンク数
+    return {"stored_chunks": count}
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
