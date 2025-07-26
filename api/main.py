@@ -1,7 +1,9 @@
 # api/main.py
-from __future__ import annotations
 
+from __future__ import annotations
 import logging
+from typing import Dict
+
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -12,22 +14,13 @@ from rag.chunk import chunk_text
 from rag.embed import embed_texts
 from rag.vectordb import VectorDB
 from rag.generate import answer
-from fastapi import FastAPI
-
-@app.get("/status")
-async def status():
-    from rag.vectordb import VectorDB
-    db = VectorDB()
-    count = db.collection.count()  # ChromaDB に保存されているチャンク数
-    return {"stored_chunks": count}
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DB = VectorDB()
-
 app = FastAPI(title="Histriculture API")
 templates = Jinja2Templates(directory="templates")
+DB = VectorDB()
 
 
 class IngestRequest(BaseModel):
@@ -36,11 +29,12 @@ class IngestRequest(BaseModel):
 
 
 async def ingest_pipeline(query: str, num_results: int = 3) -> int:
-    """Run ingestion pipeline with debug logging and return chunk count."""
+    """Run the ingestion pipeline (search → crawl → chunk → embed → DB.add) and return ingested chunk count."""
     results = search.run(query, num_results)
     urls = [r["url"] for r in results if r.get("url")]
     logger.info(f"[DEBUG] URLs for '{query}': {urls}")
     if not urls:
+        logger.info(f"No URLs for query '{query}'")
         return 0
 
     texts = await crawl.run(urls)
@@ -66,18 +60,25 @@ async def ingest_pipeline(query: str, num_results: int = 3) -> int:
     return total
 
 
+@app.get("/status")
+async def status() -> Dict[str, int]:
+    """Return the number of stored chunks in the vector database."""
+    count = DB.collection.count()
+    return {"stored_chunks": count}
+
+
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/health")
-async def health() -> dict:
+async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/ingest")
-async def ingest(req: IngestRequest) -> dict:
+async def ingest(req: IngestRequest) -> Dict[str, int]:
     try:
         count = await ingest_pipeline(req.query, req.num_results)
         return {"ingested": count}
