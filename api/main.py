@@ -1,11 +1,8 @@
 # api/main.py
 from __future__ import annotations
 
-import asyncio
-from typing import Dict
-
-from fastapi import FastAPI, Request, Form, HTTPException
 import logging
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -14,7 +11,6 @@ from scripts import search, crawl
 from rag.chunk import chunk_text
 from rag.vectordb import VectorDB
 from rag.generate import answer
-from rag.embed import GeminiEmbedding
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,19 +27,26 @@ class IngestRequest(BaseModel):
 
 
 async def ingest_pipeline(query: str, num_results: int = 3) -> int:
-    """Run the ingestion pipeline and return number of chunks added."""
+    """Run the full ingestion pipeline and return ingested chunk count."""
     results = search.run(query, num_results)
-    urls = [r["url"] for r in results]
+    urls = [r["url"] for r in results if r.get("url")]
+    if not urls:
+        logger.info(f"No URLs for query '{query}'")
+        return 0
+
     texts = await crawl.run(urls)
-    count = 0
+
+    total = 0
     for url, text in texts.items():
         for idx, chunk in enumerate(chunk_text(text)):
             try:
                 DB.add([chunk], [{"url": url}], [f"{url}_{idx}"])
-                count += 1
+                total += 1
             except Exception as e:
                 logger.error(f"Failed to add chunk for {url}: {e}")
-    return count
+
+    logger.info(f"Ingested {total} chunks for query '{query}'")
+    return total
 
 
 @app.get("/")
@@ -61,9 +64,9 @@ async def ingest(req: IngestRequest) -> dict:
     try:
         count = await ingest_pipeline(req.query, req.num_results)
         return {"ingested": count}
-    except Exception as e:
-        logger.exception("Ingestion failed")
-        raise HTTPException(status_code=500, detail="Ingestion error") from e
+    except Exception:
+        logger.exception("Ingestion pipeline failed")
+        raise HTTPException(status_code=500, detail="Ingestion error")
 
 
 @app.post("/ask")

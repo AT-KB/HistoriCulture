@@ -16,7 +16,7 @@ def main() -> None:
     total = 0
     for topic in DEFAULT_TOPICS:
         try:
-            count = asyncio.run(ingest_pipeline(query=topic, num_results=10))
+            count = asyncio.run(ingest_pipeline(topic, num_results=10))
             total += count
             print(f"[OK ] {topic} → ingested {count} chunks")
         except Exception as e:
