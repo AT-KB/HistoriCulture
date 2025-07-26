@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from scripts import search, crawl
 from rag.chunk import chunk_text
+from rag.embed import embed_texts
 from rag.vectordb import VectorDB
 from rag.generate import answer
 
@@ -27,7 +28,7 @@ class IngestRequest(BaseModel):
 
 
 async def ingest_pipeline(query: str, num_results: int = 3) -> int:
-    """Run the ingestion pipeline with debug logging and return ingested chunk count."""
+    """Run ingestion pipeline with debug logging and return chunk count."""
     results = search.run(query, num_results)
     urls = [r["url"] for r in results if r.get("url")]
     logger.info(f"[DEBUG] URLs for '{query}': {urls}")
@@ -35,16 +36,17 @@ async def ingest_pipeline(query: str, num_results: int = 3) -> int:
         return 0
 
     texts = await crawl.run(urls)
-
     total = 0
+
     for url, text in texts.items():
         chunks = chunk_text(text)
         logger.info(f"[DEBUG] '{url}' produced {len(chunks)} chunks")
-        for idx, chunk in enumerate(chunks):
+        embeddings = embed_texts(chunks)
+        for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
             try:
-                # Correct DB.add signature: documents, metadatas, ids
                 DB.add(
                     documents=[chunk],
+                    embeddings=[embedding],
                     metadatas=[{"url": url}],
                     ids=[f"{url}_{idx}"]
                 )
