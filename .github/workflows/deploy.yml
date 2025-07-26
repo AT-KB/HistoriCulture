@@ -19,6 +19,7 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RUN_MODE: web
         run: |
           # --serviceフラグでデプロイ対象のサービス名を指定する
           # "HistoriCulture"の部分を、あなたの実際のサービス名に置き換えてください

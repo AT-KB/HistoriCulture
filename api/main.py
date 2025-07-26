@@ -4,68 +4,67 @@ from __future__ import annotations
 import asyncio
 from typing import Dict
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, HTTPException
+import logging
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from scripts import search, crawl
-from rag import chunk
+from rag.chunk import chunk_text
 from rag.vectordb import VectorDB
 from rag.generate import answer
 from rag.embed import GeminiEmbedding
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+DB = VectorDB()
+
 app = FastAPI(title="Histriculture API")
 templates = Jinja2Templates(directory="templates")
+
 
 class IngestRequest(BaseModel):
     query: str
     num_results: int = 10
 
-def ingest_pipeline(query: str, num_results: int):
-    print(f"--- SYNC INGESTION STARTED for query: '{query}' ---")
+
+async def ingest_pipeline(query: str, num_results: int = 3) -> int:
+    """Run the ingestion pipeline and return number of chunks added."""
     results = search.run(query, num_results)
-    urls = [r["url"] for r in results if r.get("url")]
-    if not urls:
-        print("No URLs found. Ingestion finished.")
-        return
-    print(f"Found {len(urls)} URLs. Starting crawl...")
-    pages = asyncio.run(crawl.run(urls))
+    urls = [r["url"] for r in results]
+    texts = await crawl.run(urls)
+    count = 0
+    for url, text in texts.items():
+        for idx, chunk in enumerate(chunk_text(text)):
+            try:
+                DB.add([chunk], [{"url": url}], [f"{url}_{idx}"])
+                count += 1
+            except Exception as e:
+                logger.error(f"Failed to add chunk for {url}: {e}")
+    return count
 
-    all_chunks = []
-    for page in pages:
-        all_chunks.extend(chunk.split_text(page))
-
-    if not all_chunks:
-        print("No text chunks to ingest. Ingestion finished.")
-        return
-
-    documents = [c['text'] for c in all_chunks]
-    metadatas = [c['metadata'] for c in all_chunks]
-    ids = [f"{m['source_url']}_{m['chunk_id']}" for m in metadatas]
-
-    print(f"Embedding {len(documents)} chunks with Gemini...")
-    embedder = GeminiEmbedding()
-    embeddings = embedder.embed_documents(documents)
-    print("Embedding complete.")
-
-    db = VectorDB()
-    db.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
-    
-    print(f"--- SYNC INGESTION FINISHED for query: '{query}' ---")
 
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
+@app.get("/health")
+async def health() -> dict:
+    return {"status": "ok"}
+
+
 @app.post("/ingest")
-async def ingest(req: IngestRequest) -> Dict[str, str]:
-    """
-    Triggers the ingestion pipeline SYNCHRONOUSLY.
-    This will block until the process is complete.
-    """
-    ingest_pipeline(req.query, req.num_results)
-    return {"message": f"Ingestion process for '{req.query}' has completed."}
+async def ingest(req: IngestRequest) -> dict:
+    try:
+        count = await ingest_pipeline(req.query, req.num_results)
+        return {"ingested": count}
+    except Exception as e:
+        logger.exception("Ingestion failed")
+        raise HTTPException(status_code=500, detail="Ingestion error") from e
+
 
 @app.post("/ask")
 async def ask(question: str = Form(...)):

@@ -35,3 +35,19 @@ uvicorn api.main:app --reload
 ## データの取り込み
 
 `/ingest` エンドポイントに対してクエリを POST すると、指定のキーワードで検索した Web ページをクロールし、埋め込み後に ChromaDB に保存します。保存したデータは `/ask` エンドポイントでの回答生成に利用されます。`api/worker.py` を直接実行すると、あらかじめ用意されたトピックを順番に取り込みます。
+
+## Running Worker Locally or in Railway
+
+- To start FastAPI server (default):
+  ```bash
+  RUN_MODE=web uvicorn api.main:app --reload
+  # or with Docker
+  docker run -e RUN_MODE=web histoculture
+  ```
+
+- To run ingestion worker one-off:
+  ```bash
+  RUN_MODE=worker python api/worker.py
+  # or Railway CLI:
+  railway run RUN_MODE=worker docker run histoculture
+  ```
