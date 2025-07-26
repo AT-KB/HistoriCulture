@@ -32,3 +32,11 @@ class GeminiEmbedding:
             task_type="RETRIEVAL_QUERY"
         )
         return result["embedding"]
+
+
+embedder = GeminiEmbedding()
+
+
+def embed_texts(texts: List[str]) -> List[List[float]]:
+    """Convenience wrapper to embed multiple texts."""
+    return embedder.embed_documents(texts)
