@@ -8,10 +8,7 @@ import google.generativeai as genai
 from .vectordb import VectorDB
 from .embed import GeminiEmbedding
 
-# Configure Gemini API key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-# Use the flash model
 MODEL = genai.GenerativeModel("gemini-2.5-flash")
 
 SYS_PROMPT = """
@@ -21,25 +18,18 @@ If the context does not contain the answer, state that you cannot answer from th
 """
 
 async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenerator[str, None]:
-    """
-    Generates a streaming answer using RAG:
-    1. Embed the question internally in VectorDB.query
-    2. Retrieve top-n chunks
-    3. Build a prompt with SYS_PROMPT and context
-    4. Stream the LLM response
-    """
-    # 1) Retrieve matching chunks by passing the raw question text
+    # 1) 質問文字列からマッチングチャンクを取得
     matches = db.query(question, n_results=n_results)
 
     if not matches:
         yield "申し訳ありませんが、関連する情報がデータベースに見つかりませんでした。"
         return
 
-    # 2) 結合してコンテキストを作成
+    # 2) コンテキスト生成
     context = "\n\n".join(match["document"] for match in matches)
     prompt = SYS_PROMPT.replace("{context}", context) + f"\nUser Question: {question}"
 
-    # 3) モデルに問い合わせ
+    # 3) モデル呼び出し（ストリーミング）
     try:
         response_stream = await MODEL.generate_content_async(prompt, stream=True)
         async for chunk in response_stream:
@@ -47,5 +37,4 @@ async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenera
                 yield chunk.text
     except Exception as e:
         error_message = f"申し訳ありません、回答生成中にエラーが発生しました: {e}"
-        print(error_message)
         yield error_message
