@@ -3,6 +3,7 @@
 from __future__ import annotations
 import chromadb
 from typing import List, Dict, Any
+from rag.embed import embed_texts
 
 DB_PATH = "./db"
 COLLECTION_NAME = "histriculture"
@@ -35,11 +36,13 @@ class VectorDB:
 
     def query(
         self,
-        query_embedding: List[float],
+        query_text: str,
         n_results: int = 5
     ) -> List[Dict[str, Any]]:
+        # Compute embedding for the text query
+        embedding = embed_texts([query_text])[0]
         res = self.collection.query(
-            query_embeddings=[query_embedding],
+            query_embeddings=[embedding],
             n_results=n_results
         )
         docs = res.get("documents", [[]])[0]
