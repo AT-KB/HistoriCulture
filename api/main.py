@@ -32,7 +32,6 @@ async def ingest_pipeline(query: str, num_results: int = 3) -> int:
     urls = [r["url"] for r in results if r.get("url")]
     logger.info(f"[DEBUG] URLs for '{query}': {urls}")
     if not urls:
-        logger.info(f"No URLs for query '{query}'")
         return 0
 
     texts = await crawl.run(urls)
@@ -41,9 +40,14 @@ async def ingest_pipeline(query: str, num_results: int = 3) -> int:
     for url, text in texts.items():
         chunks = chunk_text(text)
         logger.info(f"[DEBUG] '{url}' produced {len(chunks)} chunks")
-        for idx, c in enumerate(chunks):
+        for idx, chunk in enumerate(chunks):
             try:
-                DB.add([c], [{"url": url}], [f"{url}_{idx}"])
+                # Correct DB.add signature: documents, metadatas, ids
+                DB.add(
+                    documents=[chunk],
+                    metadatas=[{"url": url}],
+                    ids=[f"{url}_{idx}"]
+                )
                 total += 1
             except Exception as e:
                 logger.error(f"Failed to add chunk for {url}: {e}")
