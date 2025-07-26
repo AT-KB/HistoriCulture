@@ -27,9 +27,10 @@ class IngestRequest(BaseModel):
 
 
 async def ingest_pipeline(query: str, num_results: int = 3) -> int:
-    """Run the full ingestion pipeline and return ingested chunk count."""
+    """Run the ingestion pipeline with debug logging and return ingested chunk count."""
     results = search.run(query, num_results)
     urls = [r["url"] for r in results if r.get("url")]
+    logger.info(f"[DEBUG] URLs for '{query}': {urls}")
     if not urls:
         logger.info(f"No URLs for query '{query}'")
         return 0
@@ -38,14 +39,16 @@ async def ingest_pipeline(query: str, num_results: int = 3) -> int:
 
     total = 0
     for url, text in texts.items():
-        for idx, chunk in enumerate(chunk_text(text)):
+        chunks = chunk_text(text)
+        logger.info(f"[DEBUG] '{url}' produced {len(chunks)} chunks")
+        for idx, c in enumerate(chunks):
             try:
-                DB.add([chunk], [{"url": url}], [f"{url}_{idx}"])
+                DB.add([c], [{"url": url}], [f"{url}_{idx}"])
                 total += 1
             except Exception as e:
                 logger.error(f"Failed to add chunk for {url}: {e}")
 
-    logger.info(f"Ingested {total} chunks for query '{query}'")
+    logger.info(f"Ingested total {total} chunks for '{query}'")
     return total
 
 
