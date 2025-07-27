@@ -6,5 +6,5 @@ if [ "$RUN_MODE" = "worker" ]; then
   exec python api/worker.py
 else
   echo "[entrypoint] Starting FastAPI server..."
-  exec uvicorn api.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 60
+  exec uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 60  # 8000 → ${PORT:-8000}
 fi
