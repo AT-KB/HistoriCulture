@@ -20,7 +20,7 @@
     <script>
         document.getElementById('askForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const queryValue = document.getElementById('query').value;  // 変数名変更で明確に
+            const queryValue = document.getElementById('query').value;
             if (!queryValue) {
                 alert('質問を入力してください');
                 return;
@@ -32,17 +32,16 @@
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: queryValue})  // ここを{question: ...}に修正
+                    body: JSON.stringify({query: queryValue})  # question → query
                 });
 
                 if (!response.ok) {
                     throw new Error(`エラー: ${response.status} - ${await response.text()}`);
                 }
 
-                // ストリーミング対応: chunked読み込み
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                responseDiv.innerText = '';  // クリア
+                responseDiv.innerText = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
