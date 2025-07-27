@@ -16,3 +16,5 @@ readability-lxml
 requests
 uvicorn[standard]
 tiktoken  # 追加: chunk.pyのトークン分割用
+babel
+fastapi-babel  # i18nミドルウェア
