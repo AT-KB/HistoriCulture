@@ -16,5 +16,5 @@ readability-lxml
 requests
 uvicorn[standard]
 tiktoken
-babel  # i18n用
-fastapi-babel  # FastAPI i18nミドルウェア
+babel
+fastapi-babel==0.1.0  # バージョン固定
