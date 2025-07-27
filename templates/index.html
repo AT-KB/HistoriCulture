@@ -1,17 +1,59 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HistoriCulture</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico">
-    <script src="https://unpkg.com/htmx.org"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #response { margin-top: 20px; white-space: pre-wrap; }
+    </style>
 </head>
 <body>
-    <h1>Histriculture</h1>
-    <form hx-post="/ask" hx-target="#response-area" hx-swap="innerHTML">
-        <input type="text" name="question">
+    <h1>HistoriCulture: 歴史・文化について質問しよう</h1>
+    <form id="askForm">
+        <input type="text" id="query" placeholder="例: ガンディーの非暴力主義について教えて" required style="width: 300px;">
         <button type="submit">送信</button>
     </form>
-    <div id="response-area"></div>
+    <div id="response">回答がここに表示されます...</div>
+
+    <script>
+        document.getElementById('askForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('query').value;
+            if (!query) {
+                alert('質問を入力してください');
+                return;
+            }
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerText = '処理中...';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query: query})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`エラー: ${response.status} - ${await response.text()}`);
+                }
+
+                // ストリーミング対応: chunked読み込み
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                responseDiv.innerText = ''; // クリア
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    responseDiv.innerText += decoder.decode(value);
+                }
+            } catch (error) {
+                responseDiv.innerText = `エラーが発生しました: ${error.message}`;
+                console.error(error);
+            }
+        });
+    </script>
 </body>
 </html>
