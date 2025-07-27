@@ -4,7 +4,9 @@ import os
 from typing import List, Dict
 
 from googleapiclient.discovery import build
+import logging  # logger追加
 
+logger = logging.getLogger(__name__)  # logger設定
 
 SERVICE = build("customsearch", "v1", developerKey=os.getenv("CSE_KEY"))
 
@@ -19,7 +21,11 @@ def run(query: str, num: int = 10) -> List[Dict[str, str]]:
     Returns:
         List of dicts containing URL and title sorted by rank.
     """
-    res = SERVICE.cse().list(q=query, cx=os.getenv("CSE_CX"), num=num).execute()
-    items = res.get("items", [])
-    results = [{"url": item.get("link"), "title": item.get("title")} for item in items]
-    return results
+    try:
+        res = SERVICE.cse().list(q=query, cx=os.getenv("CSE_CX"), num=num).execute()
+        items = res.get("items", [])
+        results = [{"url": item.get("link"), "title": item.get("title")} for item in items]
+        return results
+    except Exception as e:
+        logger.error(f"Search API error for query '{query}': {e}")
+        return []  # エラー時は空リスト返し
