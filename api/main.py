@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="HistoriCulture API")
 
-# CORSミドルウェア追加（健康チェック許可）
+# CORSミドルウェア追加
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*", "healthcheck.railway.app"],
@@ -36,8 +36,12 @@ babel = Babel(app, locales=['en', 'ja'], default_locale='ja')
 app.add_middleware(BabelMiddleware, babel=babel)
 
 templates = Jinja2Templates(directory="templates")
-DB = VectorDB()
 
+try:
+    DB = VectorDB()  # DB初期化を囲む
+except Exception as e:
+    logger.error(f"DB init error: {e}")
+    DB = None  # 代替（またはエラー処理）
 
 class IngestRequest(BaseModel):
     query: str
@@ -85,7 +89,7 @@ async def ingest_pipeline(query: str, num_results: int = 10) -> int:
 
 @app.get("/status")
 async def status() -> Dict[str, int]:
-    count = DB.collection.count()
+    count = DB.collection.count() if DB else 0
     return {"stored_chunks": count}
 
 
@@ -103,7 +107,7 @@ async def index(request: Request):
 
 @app.get("/health")
 async def health() -> Dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok"}  # DB依存なし
 
 
 @app.post("/ingest")
