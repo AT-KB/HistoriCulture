@@ -9,8 +9,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_babel import Babel  # 追加
-from fastapi_babel.middleware import BabelMiddleware  # 追加
+from fastapi_babel import Babel
+from fastapi_babel.middleware import BabelMiddleware
 
 from scripts import search, crawl
 from rag.chunk import chunk_text
@@ -45,11 +45,10 @@ class IngestRequest(BaseModel):
 
 
 class AskRequest(BaseModel):
-    query: str  # question → queryに変更（HTML/一貫性）
+    query: str
 
 
-async def ingest_pipeline(query: str, num_results: int = 10) -> int:  # default=10に調整
-    """Run the ingestion pipeline (search → crawl → chunk → embed → DB.add) and return ingested chunk count."""
+async def ingest_pipeline(query: str, num_results: int = 10) -> int:
     try:
         results = search.run(query, num_results)
         urls = [r["url"] for r in results if r.get("url")]
@@ -86,14 +85,13 @@ async def ingest_pipeline(query: str, num_results: int = 10) -> int:  # default=
 
 @app.get("/status")
 async def status() -> Dict[str, int]:
-    """Return the number of stored chunks in the vector database."""
     count = DB.collection.count()
     return {"stored_chunks": count}
 
 
 @app.get("/")
 async def index(request: Request):
-    _ = babel.gettext  # 翻訳関数
+    _ = babel.gettext
     return templates.TemplateResponse("index.html", {
         "request": request,
         "title": _("title"),
@@ -120,9 +118,6 @@ async def ingest(req: IngestRequest) -> Dict[str, int]:
 
 @app.post("/ask")
 async def ask(req: AskRequest):
-    """
-    Accepts JSON {"query": "..."} and returns a streaming RAG answer.
-    """
     try:
         question = req.query
         response_generator = answer(question, DB)
@@ -132,4 +127,3 @@ async def ask(req: AskRequest):
     except Exception as e:
         logger.exception("Ask error")
         raise HTTPException(status_code=500, detail=str(e))
-        
