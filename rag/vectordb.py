@@ -1,18 +1,22 @@
 from __future__ import annotations
 import chromadb
 from typing import List, Dict, Any
-from rag.embed import embed_texts
+from rag.embed import embed_texts, embedder  # embedder追加
 
-DB_PATH = "./db"
+DB_PATH = "/app/db"  # Volumeマウントに合わせ
 COLLECTION_NAME = "histriculture"
 
 class VectorDB:
     def __init__(self) -> None:
-        self.client = chromadb.PersistentClient(path=DB_PATH)
-        self.collection = self.client.get_or_create_collection(
-            name=COLLECTION_NAME,
-            embedding_function=None
-        )
+        try:
+            self.client = chromadb.PersistentClient(path=DB_PATH)
+            self.collection = self.client.get_or_create_collection(
+                name=COLLECTION_NAME,
+                embedding_function=embedder.embed_query  # 埋め込み関数指定
+            )
+        except Exception as e:
+            logger.error(f"ChromaDB init error: {e}")
+            raise
 
     def add(
         self,
