@@ -1,0 +1,11 @@
+msgid "title"
+msgstr "HistoriCulture: 歴史・文化について質問しよう"
+
+msgid "placeholder"
+msgstr "例: ガンディーの非暴力主義について教えて"
+
+msgid "submit"
+msgstr "送信"
+
+msgid "response"
+msgstr "回答がここに表示されます..."
