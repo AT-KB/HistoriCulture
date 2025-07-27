@@ -11,10 +11,10 @@ lxml
 pytest
 pytest-asyncio
 python-dotenv
-python-multipart  # ← これが追加された最後の部品です！
+python-multipart
 readability-lxml
 requests
 uvicorn[standard]
-tiktoken  # 追加: chunk.pyのトークン分割用
-babel
-fastapi-babel  # i18nミドルウェア
+tiktoken
+babel  # 追加: i18n用
+fastapi-babel  # 追加: FastAPI i18nミドルウェア
