@@ -1,8 +1,9 @@
-# requirements.txt  ― すべて最新版に近い安定版 / 1 行 1 パッケージ
+# requirements.txt
 aiohttp>=3.12
 beautifulsoup4>=4.13
 chromadb>=1.0.15
 fastapi>=0.116
+fastapi-babel==1.0.0          # ← 0.1.0 だと存在しない
 google-api-python-client>=2.177
 google-generativeai>=0.8.5
 httpx>=0.28
@@ -14,8 +15,6 @@ python-dotenv>=1.1
 python-multipart>=0.0.20
 readability-lxml>=0.8.4
 requests>=2.32
-uvicorn[standard]>=0.29
 tiktoken>=0.9
+uvicorn[standard]>=0.29
 babel>=2.17
-fastapi-babel==1.0.0   # ← 0.1.0 → 1.0.0
-
