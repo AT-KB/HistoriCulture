@@ -7,8 +7,10 @@ from typing import Dict
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, ValidationError  # ValidationError追加
-from fastapi.middleware.cors import CORSMiddleware  # CORS追加
+from pydantic import BaseModel, ValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_babel import Babel  # 追加
+from fastapi_babel.middleware import BabelMiddleware  # 追加
 
 from scripts import search, crawl
 from rag.chunk import chunk_text
@@ -28,6 +30,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Babel i18nミドルウェア追加
+babel = Babel(app, locales=['en', 'ja'], default_locale='ja')
+app.add_middleware(BabelMiddleware, babel=babel)
 
 templates = Jinja2Templates(directory="templates")
 DB = VectorDB()
@@ -87,7 +93,14 @@ async def status() -> Dict[str, int]:
 
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    _ = babel.gettext  # 翻訳関数
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "title": _("title"),
+        "placeholder": _("placeholder"),
+        "submit": _("submit"),
+        "response": _("response")
+    })
 
 
 @app.get("/health")
@@ -111,7 +124,7 @@ async def ask(req: AskRequest):
     Accepts JSON {"query": "..."} and returns a streaming RAG answer.
     """
     try:
-        question = req.query  # req.question → req.query
+        question = req.query
         response_generator = answer(question, DB)
         return StreamingResponse(response_generator, media_type="text/plain")
     except ValidationError as e:
@@ -119,3 +132,4 @@ async def ask(req: AskRequest):
     except Exception as e:
         logger.exception("Ask error")
         raise HTTPException(status_code=500, detail=str(e))
+        
