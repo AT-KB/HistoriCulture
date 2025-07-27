@@ -7,7 +7,7 @@ from typing import Dict
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError  # ValidationError追加
 
 from scripts import search, crawl
 from rag.chunk import chunk_text
@@ -18,7 +18,7 @@ from rag.generate import answer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Histriculture API")
+app = FastAPI(title="HistoriCulture API")
 templates = Jinja2Templates(directory="templates")
 DB = VectorDB()
 
@@ -29,39 +29,43 @@ class IngestRequest(BaseModel):
 
 
 class AskRequest(BaseModel):
-    question: str
+    query: str  # question → queryに変更（HTML/一貫性）
 
 
-async def ingest_pipeline(query: str, num_results: int = 3) -> int:
+async def ingest_pipeline(query: str, num_results: int = 10) -> int:  # default=10に調整
     """Run the ingestion pipeline (search → crawl → chunk → embed → DB.add) and return ingested chunk count."""
-    results = search.run(query, num_results)
-    urls = [r["url"] for r in results if r.get("url")]
-    logger.info(f"[DEBUG] URLs for '{query}': {urls}")
-    if not urls:
-        logger.info(f"No URLs for query '{query}'")
-        return 0
+    try:
+        results = search.run(query, num_results)
+        urls = [r["url"] for r in results if r.get("url")]
+        logger.info(f"[DEBUG] URLs for '{query}': {urls}")
+        if not urls:
+            logger.info(f"No URLs for query '{query}'")
+            return 0
 
-    texts = await crawl.run(urls)
-    total = 0
+        texts = await crawl.run(urls)
+        total = 0
 
-    for url, text in texts.items():
-        chunks = chunk_text(text)
-        logger.info(f"[DEBUG] '{url}' produced {len(chunks)} chunks")
-        embeddings = embed_texts(chunks)
-        for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            try:
-                DB.add(
-                    documents=[chunk],
-                    embeddings=[embedding],
-                    metadatas=[{"url": url}],
-                    ids=[f"{url}_{idx}"]
-                )
-                total += 1
-            except Exception as e:
-                logger.error(f"Failed to add chunk for {url}: {e}")
+        for url, text in texts.items():
+            chunks = chunk_text(text)
+            logger.info(f"[DEBUG] '{url}' produced {len(chunks)} chunks")
+            embeddings = embed_texts(chunks)
+            for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                try:
+                    DB.add(
+                        documents=[chunk],
+                        embeddings=[embedding],
+                        metadatas=[{"url": url}],
+                        ids=[f"{url}_{idx}"]
+                    )
+                    total += 1
+                except Exception as e:
+                    logger.error(f"Failed to add chunk for {url}: {e}")
 
-    logger.info(f"Ingested total {total} chunks for '{query}'")
-    return total
+        logger.info(f"Ingested total {total} chunks for '{query}'")
+        return total
+    except Exception as e:
+        logger.error(f"Ingestion pipeline error: {e}")
+        raise
 
 
 @app.get("/status")
@@ -94,8 +98,14 @@ async def ingest(req: IngestRequest) -> Dict[str, int]:
 @app.post("/ask")
 async def ask(req: AskRequest):
     """
-    Accepts JSON {"question": "..."} and returns a streaming RAG answer.
+    Accepts JSON {"query": "..."} and returns a streaming RAG answer.
     """
-    question = req.question
-    response_generator = answer(question, DB)
-    return StreamingResponse(response_generator, media_type="text/plain")
+    try:
+        question = req.query  # req.question → req.query
+        response_generator = answer(question, DB)
+        return StreamingResponse(response_generator, media_type="text/plain")
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        logger.exception("Ask error")
+        raise HTTPException(status_code=500, detail=str(e))
