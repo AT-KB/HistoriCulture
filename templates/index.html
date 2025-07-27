@@ -22,11 +22,11 @@
             e.preventDefault();
             const queryValue = document.getElementById('query').value;
             if (!queryValue) {
-                alert('{{ alert_message }}');  // 追加: 警報も翻訳可能に
+                alert('質問を入力してください');
                 return;
             }
             const responseDiv = document.getElementById('response');
-            responseDiv.innerText = '{{ processing }}';  // 追加: 処理中も翻訳
+            responseDiv.innerText = '処理中...';
 
             try {
                 const response = await fetch('/ask', {
@@ -36,7 +36,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`{{ error_prefix }}: ${response.status} - ${await response.text()}`);
+                    throw new Error(`エラー: ${response.status} - ${await response.text()}`);
                 }
 
                 const reader = response.body.getReader();
@@ -49,7 +49,7 @@
                     responseDiv.innerText += decoder.decode(value);
                 }
             } catch (error) {
-                responseDiv.innerText = `{{ error_message }}: ${error.message}`;
+                responseDiv.innerText = `エラーが発生しました: ${error.message}`;
                 console.error(error);
             }
         });
