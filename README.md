@@ -19,3 +19,52 @@ HistoriCulture は、Google 検索の結果を自動でクロールし、Gemini 
 
 ```bash
 pip install -r requirements.txt
+翻訳コンパイル（多言語用、初回のみ）。
+bash
+
+Collapse
+
+Wrap
+
+Run
+
+Copy
+pybabel compile -d translations
+環境変数を設定します。
+GOOGLE_API_KEY : Google Gemini の API キー
+CSE_KEY と CSE_CX : Google Custom Search の認証情報
+API を起動します。
+bash
+
+Collapse
+
+Wrap
+
+Run
+
+Copy
+uvicorn api.main:app --reload
+ブラウザで http://localhost:8000/ にアクセスすると、質問入力フォームが表示されます。
+
+データの取り込み
+/ingest エンドポイントに対してクエリを POST すると、指定のキーワードで検索した Web ページをクロールし、埋め込み後に ChromaDB に保存します。保存したデータは /ask エンドポイントでの回答生成に利用されます。api/worker.py を直接実行すると、あらかじめ用意されたトピックを順番に取り込みます。
+
+Running Worker Locally or in Railway
+To start FastAPI server (default):
+bash
+
+
+
+
+RUN_MODE=web uvicorn api.main:app --reload
+# or with Docker
+docker run -e RUN_MODE=web histoculture
+To run ingestion worker one-off:
+bash
+
+
+
+
+RUN_MODE=worker python api/worker.py
+# or Railway CLI:
+railway run RUN_MODE=worker docker run histoculture
