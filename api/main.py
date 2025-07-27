@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError  # ValidationError追加
+from fastapi.middleware.cors import CORSMiddleware  # CORS追加
 
 from scripts import search, crawl
 from rag.chunk import chunk_text
@@ -19,6 +20,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="HistoriCulture API")
+
+# CORSミドルウェア追加（健康チェック許可）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*", "healthcheck.railway.app"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 templates = Jinja2Templates(directory="templates")
 DB = VectorDB()
 
