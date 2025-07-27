@@ -17,6 +17,5 @@ ENV RUN_MODE=web
 # Railway provides the PORT env var.
 EXPOSE ${PORT:-8000}
 
-#CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
-# python -u で非バッファモードで実行し、print文がリアルタイムでログに出るようにする
-CMD ["python", "-u", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Remove CMD if ENTRYPOINT handles it
+# CMD ["python", "-u", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
