@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 SYS_PROMPT = (
     "You are a helpful and knowledgeable historian.\n"
     "Based only on the provided context, answer the user's question clearly and concisely.\n"
-    "If the context does not contain the answer, state that you cannot answer from the given information."
+    "If the context does not contain the answer, state that you cannot answer from the given information.\n"
+    "Answer in the language of the query."  # 言語対応追加
 )
 
 async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenerator[str, None]:
@@ -36,7 +37,7 @@ async def answer(question: str, db: VectorDB, n_results: int = 5) -> AsyncGenera
     prompt = (
         f"{SYS_PROMPT}\n\n"
         f"Context:\n{context}\n\n"
-        f"User Question: {question}\n"
+        f"User Question: {question}\n\n"
         "Answer:"
     )
     logger.info(f"[ASK] prompt length: {len(prompt)} chars")
