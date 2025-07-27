@@ -11,7 +11,8 @@ lxml
 pytest
 pytest-asyncio
 python-dotenv
-python-multipart  # ← これが追加された最後の部品です！
+python-multipart
 readability-lxml
 requests
 uvicorn[standard]
+tiktoken  # 追加: chunk.py用
