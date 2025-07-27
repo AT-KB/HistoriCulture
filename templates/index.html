@@ -20,8 +20,8 @@
     <script>
         document.getElementById('askForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const query = document.getElementById('query').value;
-            if (!query) {
+            const queryValue = document.getElementById('query').value;  // 変数名変更で明確に
+            if (!queryValue) {
                 alert('質問を入力してください');
                 return;
             }
@@ -32,7 +32,7 @@
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query: query})
+                    body: JSON.stringify({question: queryValue})  // ここを{question: ...}に修正
                 });
 
                 if (!response.ok) {
@@ -42,7 +42,7 @@
                 // ストリーミング対応: chunked読み込み
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                responseDiv.innerText = ''; // クリア
+                responseDiv.innerText = '';  // クリア
 
                 while (true) {
                     const { done, value } = await reader.read();
