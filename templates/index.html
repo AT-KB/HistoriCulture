@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="{{ babel.locale.language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,33 +10,33 @@
     </style>
 </head>
 <body>
-    <h1>HistoriCulture: 歴史・文化について質問しよう</h1>
+    <h1>{{ title }}</h1>
     <form id="askForm">
-        <input type="text" id="query" placeholder="例: ガンディーの非暴力主義について教えて" required style="width: 300px;">
-        <button type="submit">送信</button>
+        <input type="text" id="query" placeholder="{{ placeholder }}" required style="width: 300px;">
+        <button type="submit">{{ submit }}</button>
     </form>
-    <div id="response">回答がここに表示されます...</div>
+    <div id="response">{{ response }}</div>
 
     <script>
         document.getElementById('askForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const queryValue = document.getElementById('query').value;
             if (!queryValue) {
-                alert('質問を入力してください');
+                alert('{{ alert_message }}');  // 追加: 警報も翻訳可能に
                 return;
             }
             const responseDiv = document.getElementById('response');
-            responseDiv.innerText = '処理中...';
+            responseDiv.innerText = '{{ processing }}';  // 追加: 処理中も翻訳
 
             try {
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query: queryValue})  # question → query
+                    body: JSON.stringify({query: queryValue})
                 });
 
                 if (!response.ok) {
-                    throw new Error(`エラー: ${response.status} - ${await response.text()}`);
+                    throw new Error(`{{ error_prefix }}: ${response.status} - ${await response.text()}`);
                 }
 
                 const reader = response.body.getReader();
@@ -49,7 +49,7 @@
                     responseDiv.innerText += decoder.decode(value);
                 }
             } catch (error) {
-                responseDiv.innerText = `エラーが発生しました: ${error.message}`;
+                responseDiv.innerText = `{{ error_message }}: ${error.message}`;
                 console.error(error);
             }
         });
